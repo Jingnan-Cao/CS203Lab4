@@ -1,10 +1,29 @@
 #!/usr/bin/env python
 import os, sys, math
 
+def parser(str, tagL, idxL): 
+    slist = str.split(" ")
+    addrHex = slist[-1]
+    offset = slist[-2]
+    num = long(addrHex, 16) + long(offset)
+    addrBin = bin(num)[2:]
+    if len(addrBin) < 32:
+        addrBin = (32 - len(addrBin)) * '0' + addrBin
+    if len(addrBin) > 32:
+        addrBin = addrBin[-32:]
+    tag = addrBin[:tagL]
+    idx = addrBin[tagL: tagL + idxL]
+    return [tag, idx]
+
+def getLen(set_size):
+    return int(math.ceil(math.log(set_size, 2)))
+
+
 if len(sys.argv) != 5:
     print "<cache_size  block_size  ways  file_name>"
     sys.exit(0)
 
+#initialize
 cache_size = int(sys.argv[1]) * 1024
 block_size = int(sys.argv[2])
 ways = int(sys.argv[3])
@@ -16,8 +35,6 @@ if not ways:
 else:
 	cache_sets = (block_num - 1) / ways + 1
 
-def getLen(set_size):
-	return int(math.ceil(math.log(set_size, 2)))
 
 idxL = getLen(cache_sets)
 offsetL = getLen(block_size)
@@ -31,19 +48,6 @@ for i in range(cache_sets):
 	if len(iStr) < idxL:
 		iStr = (idxL - len(iStr)) * '0' + iStr
 	CACHE[iStr] = []
-
-def parser(str, tagL, idxL): 
-	slist = str.split(" ")
-	addrHex = slist[-1]
-	if len(addrHex) > 8:
-		addrHex = addrHex[-8:]
-	num = int(addrHex, 16)
-	addrBin = bin(num)[2:]
-	if len(addrBin) < 32:
-	 	addrBin = (32 - len(addrBin)) * '0' + addrBin
-	tag = addrBin[:tagL]
-	idx = addrBin[tagL: tagL + idxL]
-	return [tag, idx]
 
 #gcc-10K.memtrace
 file = open(file_name, "r+")
@@ -75,12 +79,15 @@ while line:
 
 file.close()
 
-print cache_size
-print block_size
-print ways
-print file_name
-miss_rate = float(miss) / float(visit)
-print "miss rate" + "%.8f" % miss_rate
-print "miss" + str(miss)
+miss_rate = float(miss) / float(visit) * 100.0
+print "miss rate: " + str(miss_rate) + "%"
+print "hit rate: " + str(100 - miss_rate) + "%"
+print "number of sets: " + str(cache_sets)
+print "ways: " + str(ways)
+print "number of address bits for tag: " + str(tagL)
+print "number of address bits for index: " + str(idxL)
+print "number of address bits for offset: " + str(offsetL)
+print 
+
 
 
